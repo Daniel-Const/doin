@@ -3,26 +3,22 @@ use std::path::Path;
 use std::fs::{File, read_to_string};
 use std::process;
 
-struct Todo {
-    id: u16,
-    text: String,
+mod todo;
+
+fn new(todo_list: &mut todo::TodoList, text: String) {
+    todo_list.add_todo(text);
+    let _ = todo_list.save_to_file();
+    todo_list.print_list();
 }
 
-fn new() {
-    // Create a new TODO item
+fn rm(todo_list: &mut todo::TodoList, id: u16) {
+    todo_list.delete_todo(id);
+    let _ = todo_list.save_to_file();
+    todo_list.print_list();
+
 }
 
-fn rm() {
-    // Delete a TODO item
-}
-
-fn save_todo_list() {
-    // Overwrite .doin file with the edited todo list items
-}
-
-
-
-fn read_doin_file() -> Vec<Todo> {
+fn read_doin_file() -> todo::TodoList {
     let file = read_to_string(".doin");
 
     let text = match file {
@@ -33,19 +29,11 @@ fn read_doin_file() -> Vec<Todo> {
         }
     };
 
-    let mut todo_vec: Vec<Todo> = vec![];
-    for line in text.split('\n').into_iter() {
-        let parts: Vec<&str> = line.split('.').collect();
-        if parts.len() < 2 {
-            continue
-        }
-        todo_vec.push(Todo {
-            id: parts[0].parse::<u16>().unwrap(),
-            text: parts[1].trim().to_string()
-        });
-    }
+    return todo::TodoList::from_text(text);
+}
 
-    return todo_vec;
+fn help() {
+    println!("USAGE: doin [command]");
 }
 
 fn init() -> std::io::Result<()> {
@@ -57,11 +45,22 @@ fn init() -> std::io::Result<()> {
 
 fn main() {
     let _ = init();
-    let _args: Vec<String> = env::args().collect();
-    // dbg!(args);
-    let todo_items = read_doin_file();
-    println!("~ Todo items ~");
-    for item in todo_items {
-        println!("{0}: {1}", item.id, item.text);
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        help();
+        process::exit(1);
+        // TODO: Start interactive shell here
     }
+    let command = &args[1];
+    let mut todo_items = read_doin_file();
+    match command.as_str() {
+        "ls" => todo_items.print_list(),
+        "add" => new(&mut todo_items, args[2].to_string()),
+        "rm" => rm(&mut todo_items, args[2].parse::<u16>().unwrap()),
+        _ => println!("Invalid command"),
+    }
+
+
+    // dbg!(args);
+
 }
